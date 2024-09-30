@@ -1,0 +1,74 @@
+name: Sync Exercise and Solution Notebooks
+
+on:
+  pull_request:
+    branches:
+      - development   # This is the branch where teachers update content inclusive of solutions
+    types:
+      - closed    # Only trigger when the pull request is closed
+
+jobs:
+  update_notebooks:
+    if: github.event.pull_request.merged == true  # Only run if the pull request has been merged
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+
+    - name: Set up Python
+      uses: actions/setup-python@v3
+      with:
+        python-version: '3.x'
+
+    - name: Install dependencies
+      run: |
+        pip install nbconvert jupyter nbformat
+
+    # Commit the changes made to the development branch before switching branches
+    - name: Commit changes to the development branch
+      run: |
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+
+    # Checkout solution branch and push changes (exercises with solutions)
+    - name: Commit and push changes to the solution branch # Pushes the file directly to the solution branch
+      run: |
+        git checkout solutions
+        git merge development  # Merge the changes from development to solution
+        
+        # Push the changes to the solution branch
+        git push origin solutions
+
+
+     # Checkout main and push changes with solutions
+    - name: Commit and push changes to the main branch # Pushes to main solutions
+      run: |
+        git checkout main
+        git merge development  # Merge the changes from development to main
+        
+        # Push changes to the main branch
+        git push origin main
+
+    - name: Process Notebooks - Strip Solutions
+      run: |
+        # This removes any cells tagged with "Solutions"
+        python scripts/strip_solutions.py
+
+
+    # Step to commit and push changes to the main branch after stripping solutions
+    - name: Commit and push changes to the main branch after stripping solutions
+      run: |
+       
+
+        # Add all Jupyter notebook files in the root directory
+        git add *.ipynb
+        
+        # Commit changes with a descriptive message for the main branch
+        git commit -m "Update main branch with exercises without solutions"
+        
+        # Push the changes to the main branch
+        git push origin main
