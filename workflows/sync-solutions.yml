@@ -3,9 +3,9 @@ name: Sync Exercise and Solution Notebooks
 on:
   pull_request:
     branches:
-      - development   # This is the branch where teachers update content inclusive of solutions
+      - development   # Trigger workflow for pull requests targeting the development branch
     types:
-      - closed    # Only trigger when the pull request is closed
+      - closed        # Trigger when the pull request is closed
 
 jobs:
   update_notebooks:
@@ -27,42 +27,43 @@ jobs:
       run: |
         pip install nbconvert jupyter nbformat
 
-    # Commit the changes made to the development branch before switching branches
-    - name: Commit changes to the development branch
+    # Step to commit and push changes to the solution branch
+    - name: Commit and push changes to the solution branch
       run: |
         git config --global user.name "github-actions[bot]"
         git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
-
-    # Checkout solution branch and push changes (exercises with solutions)
-    - name: Commit and push changes to the solution branch # Pushes the file directly to the solution branch
-      run: |
+        # Checkout the solution branch
         git checkout solutions
-        git merge development  # Merge the changes from development to solution
         
+        # Merge changes from the development branch into the solution branch
+        git merge development
+
         # Push the changes to the solution branch
         git push origin solutions
 
-
-     # Checkout main and push changes with solutions
-    - name: Commit and push changes to the main branch # Pushes to main solutions
+    # Step to merge changes into the main branch
+    - name: Merge changes into the main branch
       run: |
         git checkout main
-        git merge development  # Merge the changes from development to main
         
-        # Push changes to the main branch
+        # Merge changes from the development branch into the main branch
+        git merge development
+
+        # Push the changes to the main branch
         git push origin main
 
+    # Step to run the Python script to strip solutions
     - name: Process Notebooks - Strip Solutions
       run: |
         # This removes any cells tagged with "Solutions"
         python scripts/strip_solutions.py
 
-
     # Step to commit and push changes to the main branch after stripping solutions
     - name: Commit and push changes to the main branch after stripping solutions
       run: |
-       
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
         # Add all Jupyter notebook files in the root directory
         git add *.ipynb
